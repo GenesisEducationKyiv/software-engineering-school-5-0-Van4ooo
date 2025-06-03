@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/Van4ooo/genesis_case_task/src/db"
-	"github.com/Van4ooo/genesis_case_task/src/models"
-	"github.com/Van4ooo/genesis_case_task/src/services"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"io"

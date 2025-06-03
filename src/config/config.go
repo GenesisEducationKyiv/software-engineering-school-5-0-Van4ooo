@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/Van4ooo/genesis_case_task/src/handlers"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/handlers"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"

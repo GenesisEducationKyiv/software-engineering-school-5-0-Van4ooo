@@ -29,6 +29,16 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Install golangci-lint
+        uses: golangci/golangci-lint-action@v4
+        with:
+          version: v1.59.0
+
+      - name: Run golangci-lint
+        run: |
+          echo "Running golangci-lint..."
+          golangci-lint run --timeout 5m
+
       - name: Verify gofmt formatting
         run: |
           echo "Checking code formatting with gofmt..."

@@ -2,11 +2,7 @@ name: CI
 
 on:
   push:
-    branches:
-      - main
   pull_request:
-    branches:
-      - main
 
 env:
   WEATHER_API_KEY: ${{ vars.WEATHER_API_KEY }}

@@ -39,7 +39,8 @@ func TestFetchRawError(t *testing.T) {
 }
 
 func TestParserWeather(t *testing.T) {
-	response := []byte(`{"current": {"temp_c": 20.5, "humidity": 60, "condition": {"text": "Sunny"}}}`)
+	response := []byte(
+		`{"current": {"temp_c": 20.5, "humidity": 60, "condition": {"text": "Sunny"}}}`)
 	status := 200
 
 	weather, err := services.ParserWeather(response, status)
@@ -68,7 +69,9 @@ func TestFetchCurrentWeather(t *testing.T) {
 	expectedURL := "https://api.weatherapi.com/v1/current.json?key=" + apiKey + "&q=Lviv"
 
 	httpmock.RegisterResponder("GET", expectedURL,
-		httpmock.NewStringResponder(200, `{"current": {"temp_c": 20.5, "humidity": 60, "condition": {"text": "Sunny"}}}`))
+		httpmock.NewStringResponder(
+			200,
+			`{"current": {"temp_c": 20.5, "humidity": 60, "condition": {"text": "Sunny"}}}`))
 
 	weather, err := services.FetchCurrentWeather("Lviv")
 

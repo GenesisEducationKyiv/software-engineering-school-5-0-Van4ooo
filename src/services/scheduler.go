@@ -13,13 +13,18 @@ import (
 func StartScheduler() {
 	c := cron.New(cron.WithLocation(time.UTC))
 
-	c.AddFunc("0 * * * *", func() {
+	if _, err := c.AddFunc("0 * * * *", func() {
 		sendWeatherUpdates("hourly")
-	})
+	}); err != nil {
+		log.Fatalf("Error adding hourly updates: %v", err)
+	}
 
-	c.AddFunc("0 8 * * *", func() {
+	if _, err := c.AddFunc("0 8 * * *", func() {
 		sendWeatherUpdates("daily")
-	})
+	}); err != nil {
+		log.Fatalf("Error adding daily updates: %v", err)
+	}
+
 	c.Start()
 	select {}
 }

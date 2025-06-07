@@ -2,14 +2,12 @@ package db
 
 import (
 	"database/sql"
-	"log"
-	"path/filepath"
-
 	"github.com/golang-migrate/migrate/v4"
 	migrateDriver "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	gormDriver "gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"log"
 )
 
 var DB *gorm.DB
@@ -38,7 +36,7 @@ func getSQLDB(dbConn *gorm.DB) *sql.DB {
 }
 
 func runMigrations(sqlDB *sql.DB) {
-	dir := filepath.Join("migrations")
+	dir := "migrations"
 	driver, err := migrateDriver.WithInstance(sqlDB, &migrateDriver.Config{})
 	if err != nil {
 		log.Fatalf("migration driver init error: %v", err)

@@ -1,7 +1,6 @@
 name: CI
 
 on:
-  push:
   pull_request:
 
 env:
@@ -25,24 +24,12 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
-      - name: Install golangci-lint
+      - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1.6
 
-      - name: Verify gofmt formatting
-        run: |
-          echo "Checking code formatting with gofmt..."
-          
-          UNFORMATTED=$(gofmt -l .)
-          if [ -n "$UNFORMATTED" ]; then
-            echo "The following files are not formatted:"
-            echo "$UNFORMATTED"
-            echo "::error ::Please run 'gofmt -w .' and commit the changes."
-            exit 1
-          fi
-
-      - name: Run tests
+      - name: tests
         run: |
           echo "Running tests..."
           go test ./... -v

@@ -2,12 +2,14 @@ package services
 
 import (
 	"fmt"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
-	"github.com/robfig/cron/v3"
-	"gorm.io/gorm"
 	"log"
 	"time"
+
+	"github.com/robfig/cron/v3"
+	"gorm.io/gorm"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 )
 
 func StartScheduler() {

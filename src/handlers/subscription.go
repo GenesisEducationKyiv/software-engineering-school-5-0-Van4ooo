@@ -2,15 +2,17 @@ package handlers
 
 import (
 	"fmt"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
-	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
 type subscriptionRequest struct {

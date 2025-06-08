@@ -1,11 +1,13 @@
 package tests
 
 import (
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
-	"github.com/jarcoal/httpmock"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
+
+	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
 func TestFetchRaw(t *testing.T) {

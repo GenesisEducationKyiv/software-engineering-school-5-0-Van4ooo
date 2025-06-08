@@ -32,6 +32,16 @@ linters:
     misspell:
       locale: UK
 
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

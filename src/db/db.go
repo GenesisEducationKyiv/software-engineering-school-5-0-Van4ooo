@@ -2,12 +2,13 @@ package db
 
 import (
 	"database/sql"
+	"log"
+
 	"github.com/golang-migrate/migrate/v4"
 	migrateDriver "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	gormDriver "gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"log"
 )
 
 var DB *gorm.DB

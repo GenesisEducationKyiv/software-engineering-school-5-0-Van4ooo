@@ -8,7 +8,7 @@ env:
 
 jobs:
   build-and-test:
-    name: Build, fmt-check & Test
+    name: Build, golangci-lint & tests
     runs-on: ubuntu-latest
 
     strategy:

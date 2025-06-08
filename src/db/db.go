@@ -13,6 +13,8 @@ import (
 
 var DB *gorm.DB
 
+const migrationsDir = "migrations"
+
 func Init(databaseURL string) {
 	dbConn := openGormDB(databaseURL)
 	DB = dbConn
@@ -37,13 +39,12 @@ func getSQLDB(dbConn *gorm.DB) *sql.DB {
 }
 
 func runMigrations(sqlDB *sql.DB) {
-	dir := "migrations"
 	driver, err := migrateDriver.WithInstance(sqlDB, &migrateDriver.Config{})
 	if err != nil {
 		log.Fatalf("migration driver init error: %v", err)
 	}
 	m, err := migrate.NewWithDatabaseInstance(
-		"file://"+dir, "postgres", driver)
+		"file://"+migrationsDir, "postgres", driver)
 	if err != nil {
 		log.Fatalf("failed to create migration instance: %v", err)
 	}

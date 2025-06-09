@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"net/http"
 	"os"
 	"testing"
 
@@ -16,12 +17,12 @@ func TestFetchRaw(t *testing.T) {
 
 	expectedURL := "https://api.weatherapi.com/v1/current.json?key=mock_api_key&q=London"
 	httpmock.RegisterResponder("GET", expectedURL,
-		httpmock.NewStringResponder(200, `{"location": {"name": "Lviv"}}`))
+		httpmock.NewStringResponder(http.StatusOK, `{"location": {"name": "Lviv"}}`))
 
 	body, statusCode, err := services.FetchRaw(expectedURL)
 
 	assert.NoError(t, err)
-	assert.Equal(t, 200, statusCode)
+	assert.Equal(t, http.StatusOK, statusCode)
 	assert.JSONEq(t, `{"location": {"name": "Lviv"}}`, string(body))
 }
 
@@ -31,21 +32,19 @@ func TestFetchRawError(t *testing.T) {
 
 	expectedURL := "https://api.weatherapi.com/v1/current.json?key=mock_api_key&q=Lviv"
 	httpmock.RegisterResponder("GET", expectedURL,
-		httpmock.NewStringResponder(404, `{"error": "city not found"}`))
+		httpmock.NewStringResponder(http.StatusNotFound, `{"error": "city not found"}`))
 
 	body, statusCode, err := services.FetchRaw(expectedURL)
 
 	assert.NoError(t, err)
-	assert.Equal(t, 404, statusCode)
+	assert.Equal(t, http.StatusNotFound, statusCode)
 	assert.Equal(t, []byte(`{"error": "city not found"}`), body)
 }
 
 func TestParserWeather(t *testing.T) {
 	response := []byte(
 		`{"current": {"temp_c": 20.5, "humidity": 60, "condition": {"text": "Sunny"}}}`)
-	status := 200
-
-	weather, err := services.ParserWeather(response, status)
+	weather, err := services.ParserWeather(response, http.StatusOK)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 20.5, weather.Temperature)
@@ -55,9 +54,7 @@ func TestParserWeather(t *testing.T) {
 
 func TestParserWeatherError(t *testing.T) {
 	response := []byte(`{"error": "city not found"}`)
-	status := 404
-
-	weather, err := services.ParserWeather(response, status)
+	weather, err := services.ParserWeather(response, http.StatusNotFound)
 
 	assert.Error(t, err)
 	assert.Nil(t, weather)
@@ -72,7 +69,7 @@ func TestFetchCurrentWeather(t *testing.T) {
 
 	httpmock.RegisterResponder("GET", expectedURL,
 		httpmock.NewStringResponder(
-			200,
+			http.StatusOK,
 			`{"current": {"temp_c": 20.5, "humidity": 60, "condition": {"text": "Sunny"}}}`))
 
 	weather, err := services.FetchCurrentWeather("Lviv")
@@ -91,7 +88,7 @@ func TestFetchCurrentWeatherError(t *testing.T) {
 	expectedURL := "https://api.weatherapi.com/v1/current.json?key=" + apiKey + "&q=Lviv"
 
 	httpmock.RegisterResponder("GET", expectedURL,
-		httpmock.NewStringResponder(404, `{"error": "city not found"}`))
+		httpmock.NewStringResponder(http.StatusNotFound, `{"error": "city not found"}`))
 
 	weather, err := services.FetchCurrentWeather("Lviv")
 

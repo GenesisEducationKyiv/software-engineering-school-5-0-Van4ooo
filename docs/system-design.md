@@ -132,7 +132,7 @@ graph TD
   - Response: Current weather data for the specified city.
 
 
-## 5. Deployment Strategy
+## 4. Deployment Strategy
 
 - **Containerization:** Docker for consistent deployment across environments.
 - **Hosting:** Railway for initial deployment, from docker image.
@@ -142,7 +142,7 @@ graph TD
 - **CI/CD:** GitHub Actions for build, test, lint, deploy.
 - **Database Migrations:** Automated at startup using ```golang-migrate```.
 
-## 6. Future Enhancements
+## 5. Future Enhancements
 
  - **Asynchronous Processing:** Message broker (Kafka/RabbitMQ) for email jobs.
  - **Rate Limiting:** Implement rate limiting for API requests to prevent abuse.

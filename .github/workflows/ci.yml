@@ -1,35 +1,41 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
 
-env:
-  WEATHER_API_KEY: ${{ vars.WEATHER_API_KEY }}
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
-  build-and-test:
-    name: Build, golangci-lint & tests
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        go-version: [1.22.x, ]
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ matrix.go-version }}
-
-      - name: golangci-lint
+      - uses: ./.github/actions/setup-go-and-checkout@v1
+      - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.1.6
+          args: --verbose
 
-      - name: tests
-        run: |
-          echo "Running tests..."
-          go test ./... -v
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    env:
+      WEATHER_API_KEY: ${{ vars.WEATHER_API_KEY }}
+    steps:
+      - uses: ./.github/actions/setup-go-and-checkout@v1
+      - name: Run tests
+        run: go test -cover ./... -v
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup-go-and-checkout@v1
+      - name: Build project
+        run: go build ./...

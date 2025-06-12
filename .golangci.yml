@@ -3,6 +3,7 @@ version: "2"
 run:
   timeout: 5m
   tests: true
+  concurrency: 4
   modules-download-mode: readonly
 
 linters:
@@ -22,15 +23,48 @@ linters:
     - ineffassign
     - gocritic
     - prealloc
+    - funlen
+    - nakedret
+    - dupl
+    - errname
+    - gocognit
+    - revive
 
   settings:
     gocyclo:
       min-complexity: 10
+
     lll:
       line-length: 88
       tab-width: 1
+
     misspell:
       locale: UK
+
+    funlen:
+      lines: 50
+      statements: 20
+      ignore-comments: true
+
+    goconst:
+      min-len: 3
+      min-occurrences: 2
+
+    dupl:
+      threshold: 100
+
+    gocognit:
+      min-complexity: 10
+
+    revive:
+      max-open-files: 2048
+      severity: error
+      enable-all-rules: false
+      confidence: 0.1
+
+      rules:
+        - name: argument-limit
+          arguments: [4]
 
 formatters:
   enable:

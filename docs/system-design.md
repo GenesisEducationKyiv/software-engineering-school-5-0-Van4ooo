@@ -63,36 +63,32 @@ graph TD
     User[User]
 
     subgraph  Container
-      subgraph API[Weather API]
-        WeatherEP["GET /weather?city=<city>"]
-        SubscribeEP["POST /subscribe"]
-        UnsubscribeEP["GET /unsubscribe/:token"]
-        Emailer["Notification Handler"]
+      subgraph API[Go server]
+        WeatherApi["Weather Api"]
       end
 
       DB[(PostgreSQL)]
       Cron[Cron Scheduler]
     end
 
-    SMTP[SMTP Service]
-    External[External Weather API]
+    subgraph External Services
+      SMTP[SMTP Service]
+      External[Weather API]
+    end
 
-    User <-->|HTTPS POST /subscribe| SubscribeEP
-    SubscribeEP <-->|new subscription| DB
+    subgraph Hosting
+      RailwayEdge["Railway Edge</br> (TLS Termination)"]
+    end
 
-    User <-->|HTTPS GET /unsubscribe/:token| UnsubscribeEP
-    UnsubscribeEP <-->|remove subscription| DB
+    User <-->|HTTPS| RailwayEdge
+    RailwayEdge <-->|HTTP| WeatherApi
+    Cron -->|trigger| WeatherApi
 
-    
-    User <-->|HTTPS GET /weather| WeatherEP
-    WeatherEP <-->|fetch data| External
-
-  
-    Cron -->|trigger| Emailer
-    Emailer -->|load subs| DB
-    DB -->|fetch data| External
-    External -->|send emails| SMTP
+    WeatherApi <-->|store/read| DB
+    WeatherApi <-->| fetch data| External
+    WeatherApi -->|send emails| SMTP
     SMTP -->|deliver notifications| User
+
 ```
 
 ### 3.2. Domain Layer

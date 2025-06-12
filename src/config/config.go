@@ -1,14 +1,16 @@
 package config
 
 import (
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/handlers"
+	"log"
+	"os"
+	"time"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"log"
-	"os"
-	"time"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/handlers"
 )
 
 type Config struct {

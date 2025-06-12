@@ -1,9 +1,11 @@
 package handlers
 
 import (
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
-	"github.com/gin-gonic/gin"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
 func GetWeather(c *gin.Context) {

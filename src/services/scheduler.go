@@ -2,24 +2,31 @@ package services
 
 import (
 	"fmt"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
-	"github.com/robfig/cron/v3"
-	"gorm.io/gorm"
 	"log"
 	"time"
+
+	"github.com/robfig/cron/v3"
+	"gorm.io/gorm"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 )
 
 func StartScheduler() {
 	c := cron.New(cron.WithLocation(time.UTC))
 
-	c.AddFunc("0 * * * *", func() {
+	if _, err := c.AddFunc("0 * * * *", func() {
 		sendWeatherUpdates("hourly")
-	})
+	}); err != nil {
+		log.Fatalf("Error adding hourly updates: %v", err)
+	}
 
-	c.AddFunc("0 8 * * *", func() {
+	if _, err := c.AddFunc("0 8 * * *", func() {
 		sendWeatherUpdates("daily")
-	})
+	}); err != nil {
+		log.Fatalf("Error adding daily updates: %v", err)
+	}
+
 	c.Start()
 	select {}
 }

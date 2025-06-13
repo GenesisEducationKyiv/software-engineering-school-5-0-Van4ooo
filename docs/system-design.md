@@ -43,18 +43,23 @@
 - **Hosting:** [Railway](https://railway.com/) with pricing 5$/month.
 
 ## 2. Traffic Estimation
+### User Base & Engagement
 
-- **Initial User Base:** 3,000 users
-- **Growth Rate:** 10% per month
-- **Peak Concurrent Users:** 10,000 users
-- **Email Frequency:**
-  - **Daily Updates:** 50% of users
-  - **Hourly Updates:** 30% of users
-  - **No Updates:** 20% of users
-  - **Average Emails Sent per Day:**
-    - Daily: 1,500+ users * 1 email = 1,500+ emails
-    - Hourly: 900+ users * 24 emails = 21,600+ emails
-    - Total: **23,100+ emails/day**
+| Category              | SLI                                                                                                                                                   | SLO           |
+|-----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
+| Initial User          | **Current number of users at project start.** <br> **How to read:** *Initial count of registered and active users at defined starting point.*         | 3,000 users   |
+| Growth Rate           | **Monthly percentage increase in user count.** <br> **How to read:** *( (Current Month Users - Previous Month Users) / Previous Month Users ) * 100%* | 10% per month |
+| Peak Concurrent Users | **Maximum number of users active simultaneously.** <br> **How to read:** *Find maximum distinct active user sessions at any moment in a period.*      | 10,000 users  |
+
+### Email Frequency
+
+| Category                    | SLI                                                                                                                                                      | SLO                                                |
+|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------|
+| Daily Updates               | **Percentage of users receiving daily emails.** <br> **How to read:** `(count of users subscribed to daily updates / total active users) * 100%`         | *>* 50% of users                                   |
+| Hourly Updates              | **Percentage of users receiving hourly emails.** <br> **How to read:** `(count of users subscribed to hourly updates / total active users) * 100%`       | *>* 30% of users                                   |
+| No Updates                  | **Percentage of users receiving no email updates.** <br> **How to read:** `(count of users opted out of all updates / total active users) * 100%`        | *<* 20% of users                                   |
+| Average Emails Sent per Day | **Total daily emails dispatched to users.** <br> **How to read:** `(count of daily update users * 1 email) + (count of hourly update users * 24 emails)` | 23,100+ emails/day (1,500+ daily + 21,600+ hourly) |
+
 
 ## 3. System Design
 ### 3.1. High-Level Architecture

@@ -1,4 +1,4 @@
-# ADR-002: Selecting a Data-Access Strategy for PostgreSQL
+# ADR-003: Selecting a Data-Access Strategy for PostgreSQL
 
 ---
 

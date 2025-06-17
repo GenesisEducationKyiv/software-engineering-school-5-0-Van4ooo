@@ -2,7 +2,6 @@ package tests
 
 import (
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/jarcoal/httpmock"
@@ -64,7 +63,7 @@ func TestFetchCurrentWeather(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	apiKey := os.Getenv("WEATHER_API_KEY")
+	apiKey := "1111"
 	expectedURL := "https://api.weatherapi.com/v1/current.json?key=" + apiKey + "&q=Lviv"
 
 	httpmock.RegisterResponder("GET", expectedURL,
@@ -84,7 +83,7 @@ func TestFetchCurrentWeatherError(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
-	apiKey := os.Getenv("WEATHER_API_KEY")
+	apiKey := "1111"
 	expectedURL := "https://api.weatherapi.com/v1/current.json?key=" + apiKey + "&q=Lviv"
 
 	httpmock.RegisterResponder("GET", expectedURL,

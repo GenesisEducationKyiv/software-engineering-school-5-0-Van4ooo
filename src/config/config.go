@@ -1,66 +1,196 @@
 package config
 
 import (
-	"log"
-	"os"
-	"time"
+	"errors"
+	"fmt"
+	"reflect"
+	"strings"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/handlers"
+	"github.com/go-playground/validator/v10"
 )
 
-type Config struct {
-	DatabaseURL   string
-	WeatherAPIKey string
+var validate *validator.Validate
+
+func init() {
+	validate = validator.New()
 }
 
-func Load() Config {
-	db := os.Getenv("DATABASE_URL")
-	key := os.Getenv("WEATHER_API_KEY")
+type ConfigSource interface {
+	Load(provider EnvProvider) error
+	Validate() error
+}
 
-	if db == "" || key == "" {
-		log.Fatal("DATABASE_URL and WEATHER_API_KEY must be set!!")
+type AppConfig struct {
+	DB         Postgres
+	SMTP       SMTP
+	WeatherAPI WeatherAPI
+}
+
+type SMTP struct {
+	Host string `validate:"required"`
+	Addr string `validate:"required"`
+	Name string `validate:"required"`
+	Pass string `validate:"required"`
+}
+
+type Postgres struct {
+	URL string `validate:"required"`
+}
+
+func (p *Postgres) Load(provider EnvProvider) error {
+	p.URL = provider.Get("DATABASE_URL")
+	return nil
+}
+
+func (p *Postgres) Validate() error {
+	err := validate.Struct(p)
+	if err != nil {
+		return mapValidationErrorsToEnvVars(err, "Postgres",
+			map[string]string{"URL": "DATABASE_URL"})
+	}
+	return nil
+}
+
+func (s *SMTP) Load(provider EnvProvider) error {
+	s.Host = provider.Get("SMTP_HOST")
+	s.Addr = provider.Get("SMTP_ADDR")
+	s.Name = provider.Get("SMTP_NAME")
+	s.Pass = provider.Get("SMTP_PASS")
+	return nil
+}
+
+type WeatherAPI struct {
+	Key string `validate:"required"`
+}
+
+func (s *SMTP) Validate() error {
+	err := validate.Struct(s)
+	if err != nil {
+		return mapValidationErrorsToEnvVars(err, "SMTP", map[string]string{
+			"Host": "SMTP_HOST",
+			"Addr": "SMTP_ADDR",
+			"Name": "SMTP_NAME",
+			"Pass": "SMTP_PASS",
+		})
+	}
+	return nil
+}
+
+func (w *WeatherAPI) Load(provider EnvProvider) error {
+	w.Key = provider.Get("WEATHER_API_KEY")
+	return nil
+}
+
+func (w *WeatherAPI) Validate() error {
+	err := validate.Struct(w)
+	if err != nil {
+		return mapValidationErrorsToEnvVars(err, "WeatherAPI",
+			map[string]string{"Key": "WEATHER_API_KEY"})
+	}
+	return nil
+}
+
+func mapValidationErrorsToEnvVars(err error, structName string,
+	fieldToEnvNameMap map[string]string) error {
+	var validationErrors validator.ValidationErrors
+	if !errors.As(err, &validationErrors) {
+		return err
 	}
 
-	return Config{
-		DatabaseURL:   db,
-		WeatherAPIKey: key,
+	var errorMessages []string
+	for _, fieldErr := range validationErrors {
+		envVarName, ok := fieldToEnvNameMap[fieldErr.Field()]
+		if !ok {
+			errorMessages = append(errorMessages, fmt.Sprintf("Field '%s' in %s: %s",
+				fieldErr.Field(), structName, fieldErr.Tag()))
+			continue
+		}
+
+		switch fieldErr.Tag() {
+		case "required":
+			errorMessages = append(errorMessages, fmt.Sprintf(
+				"\n[!] Environment variable '%s' is missing or empty. "+
+					"(Required for field '%s')",
+				envVarName, fieldErr.Field()))
+		case "url":
+			errorMessages = append(errorMessages, fmt.Sprintf(
+				"\n[!] Environment variable '%s' contains an invalid URL. "+
+					"(Field '%s')",
+				envVarName, fieldErr.Field()))
+		default:
+			errorMessages = append(errorMessages, fmt.Sprintf(
+				"\n[!] Environment variable '%s' failed validation for tag '%s'. "+
+					"(Field '%s')",
+				envVarName, fieldErr.Tag(), fieldErr.Field()))
+		}
 	}
+
+	if len(errorMessages) == 0 {
+		return err
+	}
+	return errors.New(strings.Join(errorMessages, "; "))
 }
 
-func SetupAPI(r *gin.Engine) {
-	api := r.Group("/api")
+func forEachConfigSourceField(targetStruct interface{},
+	action func(loader ConfigSource, fieldName string) error) error {
+	val := reflect.ValueOf(targetStruct).Elem()
+	typ := val.Type()
 
-	api.GET("/weather", handlers.GetWeather)
-	api.POST("/subscribe", handlers.Subscribe)
-	api.GET("/confirm/:token", handlers.Confirm)
-	api.GET("/unsubscribe/:token", handlers.Unsubscribe)
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldName := typ.Field(i).Name
+
+		if field.CanInterface() {
+			if loader, ok := field.Addr().Interface().(ConfigSource); ok {
+				if err := action(loader, fieldName); err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
-func SetupSwagger(r *gin.Engine) {
-	r.StaticFile("/docs/swagger.yaml", "./docs/swagger.yaml")
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(
-		swaggerFiles.Handler,
-		ginSwagger.URL("/docs/swagger.yaml"),
-	))
+func NewAppConfig() *AppConfig {
+	return &AppConfig{}
 }
 
-func SetupStaticPages(r *gin.Engine) {
-	r.GET("/subscribe", handlers.RenderSubscribePage)
-	r.Static("/static/", "static/")
+func (ac *AppConfig) Load(provider EnvProvider) error {
+	ac.DB = Postgres{}
+	ac.SMTP = SMTP{}
+	ac.WeatherAPI = WeatherAPI{}
+
+	return forEachConfigSourceField(ac, func(loader ConfigSource, fieldName string) error {
+		if err := loader.Load(provider); err != nil {
+			return fmt.Errorf("failed to load %s config: %w", fieldName, err)
+		}
+		return nil
+	})
 }
 
-func SetupCors(r *gin.Engine) {
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+func (ac *AppConfig) Validate() error {
+	return forEachConfigSourceField(ac, func(loader ConfigSource, fieldName string) error {
+		if err := loader.Validate(); err != nil {
+			return fmt.Errorf("%s config error: %w", fieldName, err)
+		}
+		return nil
+	})
+}
+
+func Config() (*AppConfig, error) {
+	return SetupConfig(OSProvider{})
+}
+
+func SetupConfig(provider EnvProvider) (*AppConfig, error) {
+	appConfig := NewAppConfig()
+
+	if err := appConfig.Load(provider); err != nil {
+		return nil, fmt.Errorf("failed to load application configuration: %w", err)
+	}
+
+	if err := appConfig.Validate(); err != nil {
+		return nil, fmt.Errorf("application configuration validation failed: %w", err)
+	}
+
+	return appConfig, nil
 }

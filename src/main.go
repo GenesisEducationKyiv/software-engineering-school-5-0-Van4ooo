@@ -7,19 +7,23 @@ import (
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/routers"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
 func main() {
-	cfg := config.Load()
-	db.Init(cfg.DatabaseURL)
+	cfg, err := config.Config()
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	db.Init(cfg.DB)
 	r := gin.Default()
 
-	config.SetupCors(r)
-	config.SetupStaticPages(r)
-	config.SetupAPI(r)
-	config.SetupSwagger(r)
+	routers.SetupCors(r)
+	routers.SetupStaticPages(r)
+	routers.SetupAPI(r)
+	routers.SetupSwagger(r)
 
 	go services.StartScheduler()
 

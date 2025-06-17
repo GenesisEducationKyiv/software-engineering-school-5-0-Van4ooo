@@ -18,12 +18,9 @@ func main() {
 	}
 
 	db.Init(cfg.DB)
-	r := gin.Default()
 
-	routers.SetupCors(r)
-	routers.SetupStaticPages(r)
-	routers.SetupAPI(r)
-	routers.SetupSwagger(r)
+	r := gin.Default()
+	routers.SetupRoutes(r)
 
 	go services.StartScheduler()
 

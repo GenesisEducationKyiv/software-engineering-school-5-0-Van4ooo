@@ -2,8 +2,9 @@ package db
 
 import (
 	"database/sql"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"log"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 
 	"github.com/golang-migrate/migrate/v4"
 	migrateDriver "github.com/golang-migrate/migrate/v4/database/postgres"

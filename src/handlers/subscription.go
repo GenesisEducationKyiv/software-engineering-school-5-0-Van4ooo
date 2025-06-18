@@ -37,7 +37,7 @@ func (h *SubscriptionHandler) Subscribe(c *gin.Context) {
 		return
 	}
 
-	err := h.emailSender.SendConfirmation(req.Email, h.getBaseURL(c), token)
+	err = h.emailSender.SendConfirmation(req.Email, h.getBaseURL(c), token)
 	if err != nil {
 		h.respondError(c, http.StatusInternalServerError, "failed to send email")
 		return

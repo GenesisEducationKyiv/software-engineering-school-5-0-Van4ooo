@@ -36,7 +36,9 @@ func (h *SubscriptionHandler) Subscribe(c *gin.Context) {
 		h.respondError(c, http.StatusConflict, "email already subscribed")
 		return
 	}
-	if err := h.emailSender.SendConfirmation(req.Email, h.getBaseURL(c), token); err != nil {
+
+	err := h.emailSender.SendConfirmation(req.Email, h.getBaseURL(c), token)
+	if err != nil {
 		h.respondError(c, http.StatusInternalServerError, "failed to send email")
 		return
 	}

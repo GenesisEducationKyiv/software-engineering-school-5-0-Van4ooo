@@ -2,9 +2,10 @@ package services
 
 import (
 	"fmt"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
 	"log"
 	"time"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
 
 	"github.com/robfig/cron/v3"
 )
@@ -24,7 +25,6 @@ func NewScheduler(
 	store repositories.SubscriptionStore,
 	service WeatherService,
 	sender EmailSender) *Scheduler {
-
 	return &Scheduler{
 		store:          store,
 		WeatherService: service,

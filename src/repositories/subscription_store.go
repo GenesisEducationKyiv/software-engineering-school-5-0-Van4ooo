@@ -14,7 +14,8 @@ func NewSubscriptionStore(db *gorm.DB) SubscriptionStore {
 	return &EmailerSubscriptionStore{DB: db}
 }
 
-func (r *EmailerSubscriptionStore) FetchByFrequency(freq string) ([]models.Subscription, error) {
+func (r *EmailerSubscriptionStore) FetchByFrequency(
+	freq string) ([]models.Subscription, error) {
 	var subs []models.Subscription
 	err := r.DB.Where("frequency = ? AND confirmed = true", freq).Find(&subs).Error
 	return subs, err

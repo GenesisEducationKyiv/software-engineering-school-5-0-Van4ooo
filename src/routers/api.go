@@ -16,7 +16,9 @@ type APIRoutes struct {
 }
 
 func NewAPIRoutes(cfg config.AppSettings, db *gorm.DB) *APIRoutes {
-	weatherHandler := handlers.NewWeatherHandler(cfg.GetWeatherAPI())
+	weatherHandler := handlers.NewWeatherHandler(
+		services.NewOpenWeatherService(cfg.GetWeatherAPI()))
+
 	subHandler := handlers.NewSubscriptionHandler(
 		services.NewSubscriptionService(repositories.NewGormSubscriptionStorage(db)),
 		services.NewSMTPEmailSender(cfg.GetSMTP()))

@@ -36,7 +36,7 @@ func (h *SubscriptionHandler) Subscribe(c *gin.Context) {
 		h.respondError(c, http.StatusConflict, "email already subscribed")
 		return
 	}
-	if err := h.dispatchConfirmationEmail(req.Email, token, c); err != nil {
+	if err := h.emailSender.SendConfirmation(req.Email, h.getBaseURL(c), token); err != nil {
 		h.respondError(c, http.StatusInternalServerError, "failed to send email")
 		return
 	}
@@ -87,14 +87,6 @@ func (h *SubscriptionHandler) parseRequest(
 		req.Frequency = vals.Get("frequency")
 	}
 	return &req, nil
-}
-
-func (h *SubscriptionHandler) dispatchConfirmationEmail(
-	email, token string, c *gin.Context) error {
-	link := fmt.Sprintf("%s/api/confirm/%s", h.getBaseURL(c), token)
-	subj := "Confirm your subscription"
-	body := fmt.Sprintf("Click to confirm your subscription: %s", link)
-	return h.emailSender.Send(email, subj, body)
 }
 
 func (h *SubscriptionHandler) respondError(c *gin.Context, code int, msg string) {

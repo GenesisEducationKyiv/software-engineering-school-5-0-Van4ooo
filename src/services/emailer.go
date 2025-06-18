@@ -22,21 +22,12 @@ func (s *SMTPEmailSender) Send(to, subject, body string) error {
 }
 
 func (s *SMTPEmailSender) SendConfirmation(to, baseURL, token string) error {
-	if err := s.ensureAuth(); err != nil {
-		return err
-	}
 	link := fmt.Sprintf("%s/api/confirm/%s", baseURL, token)
 	subject := "Confirm your subscription"
 	message := fmt.Sprintf(
 		"Subject: %s\r\n\r\nClick to confirm your subscription: %s", subject, link,
 	)
-	return smtp.SendMail(
-		s.cfg.GetAddr(),
-		s.auth,
-		s.cfg.GetName(),
-		[]string{to},
-		[]byte(message),
-	)
+	return s.Send(to, subject, message)
 }
 
 type SMTPEmailSender struct {

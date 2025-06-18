@@ -20,10 +20,11 @@ func main() {
 	db.Init(cfg.GetDB())
 
 	r := gin.Default()
-
 	routers.SetupRoutes(r, cfg, db.DB)
 
-	go services.NewScheduler(cfg).Start()
+	weatherSvc := services.NewOpenWeatherService(cfg.GetWeatherAPI())
+	emailSender := services.NewSMTPEmailSender(cfg.GetSMTP())
+	go services.NewScheduler(weatherSvc, emailSender).Start()
 
 	addr := ":8080"
 	log.Printf("Starting server on %s", addr)

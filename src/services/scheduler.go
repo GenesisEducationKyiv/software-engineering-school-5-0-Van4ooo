@@ -8,7 +8,6 @@ import (
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 )
@@ -21,18 +20,14 @@ type Scheduler struct {
 
 type EmailSender interface {
 	Send(to, subject, body string) error
+	SendConfirmation(to, baseURL, token string) error
 }
 
-func NewScheduler(cfg config.AppSettings) *Scheduler {
-	database := db.DB
-
-	weatherSvc := NewOpenWeatherService(cfg.GetWeatherAPI())
-	emailSender := NewSMTPEmailSender(cfg.GetSMTP())
-
+func NewScheduler(service WeatherService, sender EmailSender) *Scheduler {
 	return &Scheduler{
-		DB:             database,
-		WeatherService: weatherSvc,
-		EmailSender:    emailSender,
+		DB:             db.DB,
+		WeatherService: service,
+		EmailSender:    sender,
 	}
 }
 

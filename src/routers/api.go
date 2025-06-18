@@ -6,6 +6,8 @@ import (
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/handlers"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
 type APIRoutes struct {
@@ -15,7 +17,10 @@ type APIRoutes struct {
 
 func NewAPIRoutes(cfg config.AppSettings, db *gorm.DB) *APIRoutes {
 	weatherHandler := handlers.NewWeatherHandler(cfg.GetWeatherAPI())
-	subHandler := handlers.NewSubscriptionHandler(cfg.GetSMTP(), db)
+	subHandler := handlers.NewSubscriptionHandler(
+		services.NewSubscriptionService(repositories.NewGormSubscriptionStorage(db)),
+		services.NewSMTPEmailSender(cfg.GetSMTP()))
+
 	return &APIRoutes{
 		WeatherHandler:      weatherHandler,
 		SubscriptionHandler: subHandler,

@@ -2,18 +2,15 @@ package services
 
 import (
 	"fmt"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
 	"log"
 	"time"
 
 	"github.com/robfig/cron/v3"
-	"gorm.io/gorm"
-
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 )
 
 type Scheduler struct {
-	DB             *gorm.DB
+	store          repositories.SubscriptionStore
 	WeatherService WeatherService
 	EmailSender    EmailSender
 }
@@ -23,9 +20,13 @@ type EmailSender interface {
 	SendConfirmation(to, baseURL, token string) error
 }
 
-func NewScheduler(service WeatherService, sender EmailSender) *Scheduler {
+func NewScheduler(
+	store repositories.SubscriptionStore,
+	service WeatherService,
+	sender EmailSender) *Scheduler {
+
 	return &Scheduler{
-		DB:             db.DB,
+		store:          store,
 		WeatherService: service,
 		EmailSender:    sender,
 	}
@@ -51,10 +52,9 @@ func (s *Scheduler) Start() {
 }
 
 func (s *Scheduler) sendWeatherUpdates(freq string) {
-	var subs []models.Subscription
-	r := s.DB.Where("frequency = ? AND confirmed = true", freq).Find(&subs)
-	if r.Error != nil && r.Error != gorm.ErrRecordNotFound {
-		log.Printf("Error fetching subscriptions: %v", r.Error)
+	subs, err := s.store.FetchByFrequency(freq)
+	if err != nil {
+		log.Printf("Error fetching subscriptions: %v", err)
 		return
 	}
 

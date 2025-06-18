@@ -9,3 +9,7 @@ type SubscriptionStorage interface {
 	MarkConfirmed(token string) error
 	Remove(token string) error
 }
+
+type SubscriptionStore interface {
+	FetchByFrequency(freq string) ([]models.Subscription, error)
+}

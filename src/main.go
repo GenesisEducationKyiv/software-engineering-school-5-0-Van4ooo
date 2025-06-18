@@ -7,6 +7,7 @@ import (
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/routers"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
@@ -24,7 +25,8 @@ func main() {
 
 	weatherSvc := services.NewOpenWeatherService(cfg.GetWeatherAPI())
 	emailSender := services.NewSMTPEmailSender(cfg.GetSMTP())
-	go services.NewScheduler(weatherSvc, emailSender).Start()
+	store := repositories.NewSubscriptionStore(db.DB)
+	go services.NewScheduler(store, weatherSvc, emailSender).Start()
 
 	addr := ":8080"
 	log.Printf("Starting server on %s", addr)

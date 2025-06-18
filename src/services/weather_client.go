@@ -8,10 +8,6 @@ import (
 	"net/url"
 )
 
-func buildUrl(city, key string) string {
-	return fmt.Sprintf("https://api.weatherapi.com/v1/current.json?key=%s&q=%s", key, city)
-}
-
 func FetchRaw(rawURL string) ([]byte, int, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
@@ -22,17 +18,12 @@ func FetchRaw(rawURL string) ([]byte, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			log.Printf("warning: failed to close response body: %v", err)
+		if cerr := resp.Body.Close(); cerr != nil {
+			log.Printf("warning: failed to close response body: %v", cerr)
 		}
 	}()
 
 	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, resp.StatusCode, err
-	}
-
-	return body, resp.StatusCode, nil
+	return body, resp.StatusCode, err
 }

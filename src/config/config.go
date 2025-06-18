@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/joho/godotenv"
 )
 
 var validate *validator.Validate
@@ -60,7 +61,8 @@ func (s *SMTP) Load(provider EnvProvider) error {
 }
 
 type WeatherAPI struct {
-	Key string `validate:"required"`
+	Key     string `validate:"required"`
+	BaseURL string `validate:"required"`
 }
 
 func (s *SMTP) Validate() error {
@@ -78,14 +80,17 @@ func (s *SMTP) Validate() error {
 
 func (w *WeatherAPI) Load(provider EnvProvider) error {
 	w.Key = provider.Get("WEATHER_API_KEY")
+	w.BaseURL = provider.Get("WEATHER_API_BASE_URL")
 	return nil
 }
 
 func (w *WeatherAPI) Validate() error {
-	err := validate.Struct(w)
-	if err != nil {
+	if err := validate.Struct(w); err != nil {
 		return mapValidationErrorsToEnvVars(err, "WeatherAPI",
-			map[string]string{"Key": "WEATHER_API_KEY"})
+			map[string]string{
+				"Key":     "WEATHER_API_KEY",
+				"BaseURL": "WEATHER_API_BASE_URL",
+			})
 	}
 	return nil
 }
@@ -178,6 +183,9 @@ func (ac *AppConfig) Validate() error {
 }
 
 func Config() (*AppConfig, error) {
+	if err := godotenv.Load(".env"); err != nil {
+		fmt.Println("Warning: .env file not found or failed to load")
+	}
 	return SetupConfig(OSProvider{})
 }
 

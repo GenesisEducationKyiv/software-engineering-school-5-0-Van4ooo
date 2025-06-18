@@ -20,11 +20,14 @@ func main() {
 	db.Init(cfg.DB)
 
 	r := gin.Default()
-	routers.SetupRoutes(r)
 
-	go services.StartScheduler()
+	routers.SetupRoutes(r, cfg, db.DB)
 
-	if err := r.Run(":8080"); err != nil {
-		log.Fatal("Failed to start server: ", err)
+	go services.NewScheduler(cfg).Start()
+
+	addr := ":8080"
+	log.Printf("Starting server on %s", addr)
+	if err := r.Run(addr); err != nil {
+		log.Fatalf("Server error: %v", err)
 	}
 }

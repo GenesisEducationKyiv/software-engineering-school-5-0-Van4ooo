@@ -11,7 +11,7 @@ type Router interface {
 	Setup(r *gin.Engine)
 }
 
-func SetupRoutes(r *gin.Engine, cfg *config.AppConfig, db *gorm.DB) {
+func SetupRoutes(r *gin.Engine, cfg config.AppSettings, db *gorm.DB) {
 	apiRoutes := NewAPIRoutes(cfg, db)
 	subHandler := apiRoutes.SubscriptionHandler
 	webRoutes := NewWebRoutes(subHandler)

@@ -8,6 +8,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
@@ -27,8 +28,12 @@ func TestFetchCurrentWeather(t *testing.T) {
 		),
 	)
 
-	svc := services.NewOpenWeatherService(apiKey, baseURL)
-	weather, err := svc.GetWeather("Lviv")
+	cfg := &config.WeatherAPI{
+		Key:     apiKey,
+		BaseURL: baseURL,
+	}
+
+	weather, err := services.NewOpenWeatherService(cfg).GetWeather("Lviv")
 
 	assert.NoError(t, err)
 	assert.Equal(t, 20.5, weather.Temperature)
@@ -48,8 +53,12 @@ func TestFetchCurrentWeatherError(t *testing.T) {
 		httpmock.NewStringResponder(http.StatusNotFound, `{"error": "city not found"}`),
 	)
 
-	svc := services.NewOpenWeatherService(apiKey, baseURL)
-	weather, err := svc.GetWeather("Lviv")
+	cfg := &config.WeatherAPI{
+		Key:     apiKey,
+		BaseURL: baseURL,
+	}
+
+	weather, err := services.NewOpenWeatherService(cfg).GetWeather("Lviv")
 
 	assert.Error(t, err)
 	assert.Nil(t, weather)

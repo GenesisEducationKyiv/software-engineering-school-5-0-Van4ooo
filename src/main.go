@@ -17,7 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db.Init(cfg.DB)
+	db.Init(cfg.GetDB())
 
 	r := gin.Default()
 

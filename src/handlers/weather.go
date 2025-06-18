@@ -13,11 +13,8 @@ type WeatherHandler struct {
 	WeatherService services.WeatherService
 }
 
-func NewWeatherHandler(cfg *config.AppConfig) *WeatherHandler {
-	svc := services.NewOpenWeatherService(
-		cfg.WeatherAPI.Key,
-		cfg.WeatherAPI.BaseURL,
-	)
+func NewWeatherHandler(cfg config.WeatherSettings) *WeatherHandler {
+	svc := services.NewOpenWeatherService(cfg)
 	return &WeatherHandler{WeatherService: svc}
 }
 

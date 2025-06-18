@@ -23,16 +23,12 @@ type SubscriptionHandler struct {
 }
 
 func NewSubscriptionHandler(
-	cfg *config.AppConfig,
+	cfg config.SMTPSettings,
 	db *gorm.DB,
 ) *SubscriptionHandler {
 	repo := repositories.NewSubscriptionRepository(db)
-	sender := services.NewSMTPEmailSender(
-		cfg.SMTP.Host,
-		cfg.SMTP.Addr,
-		cfg.SMTP.Name,
-		cfg.SMTP.Pass,
-	)
+	sender := services.NewSMTPEmailSender(cfg)
+
 	return &SubscriptionHandler{repo: repo, emailSender: sender}
 }
 

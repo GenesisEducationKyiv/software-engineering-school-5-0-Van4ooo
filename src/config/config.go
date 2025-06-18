@@ -3,7 +3,6 @@ package config
 import (
 	"errors"
 	"fmt"
-	"reflect"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -19,80 +18,6 @@ func init() {
 type ConfigSource interface {
 	Load(provider EnvProvider) error
 	Validate() error
-}
-
-type AppConfig struct {
-	DB         Postgres
-	SMTP       SMTP
-	WeatherAPI WeatherAPI
-}
-
-type SMTP struct {
-	Host string `validate:"required"`
-	Addr string `validate:"required"`
-	Name string `validate:"required"`
-	Pass string `validate:"required"`
-}
-
-type Postgres struct {
-	URL string `validate:"required"`
-}
-
-func (p *Postgres) Load(provider EnvProvider) error {
-	p.URL = provider.Get("DATABASE_URL")
-	return nil
-}
-
-func (p *Postgres) Validate() error {
-	err := validate.Struct(p)
-	if err != nil {
-		return mapValidationErrorsToEnvVars(err, "Postgres",
-			map[string]string{"URL": "DATABASE_URL"})
-	}
-	return nil
-}
-
-func (s *SMTP) Load(provider EnvProvider) error {
-	s.Host = provider.Get("SMTP_HOST")
-	s.Addr = provider.Get("SMTP_ADDR")
-	s.Name = provider.Get("SMTP_NAME")
-	s.Pass = provider.Get("SMTP_PASS")
-	return nil
-}
-
-type WeatherAPI struct {
-	Key     string `validate:"required"`
-	BaseURL string `validate:"required"`
-}
-
-func (s *SMTP) Validate() error {
-	err := validate.Struct(s)
-	if err != nil {
-		return mapValidationErrorsToEnvVars(err, "SMTP", map[string]string{
-			"Host": "SMTP_HOST",
-			"Addr": "SMTP_ADDR",
-			"Name": "SMTP_NAME",
-			"Pass": "SMTP_PASS",
-		})
-	}
-	return nil
-}
-
-func (w *WeatherAPI) Load(provider EnvProvider) error {
-	w.Key = provider.Get("WEATHER_API_KEY")
-	w.BaseURL = provider.Get("WEATHER_API_BASE_URL")
-	return nil
-}
-
-func (w *WeatherAPI) Validate() error {
-	if err := validate.Struct(w); err != nil {
-		return mapValidationErrorsToEnvVars(err, "WeatherAPI",
-			map[string]string{
-				"Key":     "WEATHER_API_KEY",
-				"BaseURL": "WEATHER_API_BASE_URL",
-			})
-	}
-	return nil
 }
 
 func mapValidationErrorsToEnvVars(err error, structName string,
@@ -134,52 +59,6 @@ func mapValidationErrorsToEnvVars(err error, structName string,
 		return err
 	}
 	return errors.New(strings.Join(errorMessages, "; "))
-}
-
-func forEachConfigSourceField(targetStruct interface{},
-	action func(loader ConfigSource, fieldName string) error) error {
-	val := reflect.ValueOf(targetStruct).Elem()
-	typ := val.Type()
-
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Field(i)
-		fieldName := typ.Field(i).Name
-
-		if field.CanInterface() {
-			if loader, ok := field.Addr().Interface().(ConfigSource); ok {
-				if err := action(loader, fieldName); err != nil {
-					return err
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func NewAppConfig() *AppConfig {
-	return &AppConfig{}
-}
-
-func (ac *AppConfig) Load(provider EnvProvider) error {
-	ac.DB = Postgres{}
-	ac.SMTP = SMTP{}
-	ac.WeatherAPI = WeatherAPI{}
-
-	return forEachConfigSourceField(ac, func(loader ConfigSource, fieldName string) error {
-		if err := loader.Load(provider); err != nil {
-			return fmt.Errorf("failed to load %s config: %w", fieldName, err)
-		}
-		return nil
-	})
-}
-
-func (ac *AppConfig) Validate() error {
-	return forEachConfigSourceField(ac, func(loader ConfigSource, fieldName string) error {
-		if err := loader.Validate(); err != nil {
-			return fmt.Errorf("%s config error: %w", fieldName, err)
-		}
-		return nil
-	})
 }
 
 func Config() (*AppConfig, error) {

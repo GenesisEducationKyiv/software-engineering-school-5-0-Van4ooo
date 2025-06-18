@@ -23,20 +23,11 @@ type EmailSender interface {
 	Send(to, subject, body string) error
 }
 
-func NewScheduler(cfg *config.AppConfig) *Scheduler {
+func NewScheduler(cfg config.AppSettings) *Scheduler {
 	database := db.DB
 
-	weatherSvc := NewOpenWeatherService(
-		cfg.WeatherAPI.Key,
-		cfg.WeatherAPI.BaseURL,
-	)
-
-	emailSender := NewSMTPEmailSender(
-		cfg.SMTP.Host,
-		cfg.SMTP.Addr,
-		cfg.SMTP.Name,
-		cfg.SMTP.Pass,
-	)
+	weatherSvc := NewOpenWeatherService(cfg.GetWeatherAPI())
+	emailSender := NewSMTPEmailSender(cfg.GetSMTP())
 
 	return &Scheduler{
 		DB:             database,

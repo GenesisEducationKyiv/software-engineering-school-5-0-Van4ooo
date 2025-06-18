@@ -3,6 +3,8 @@ package services
 import (
 	"fmt"
 	"net/smtp"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 )
 
 func (s *SMTPEmailSender) Send(to, subject, body string) error {
@@ -11,9 +13,9 @@ func (s *SMTPEmailSender) Send(to, subject, body string) error {
 	}
 	msg := fmt.Sprintf("Subject: %s\r\n\r\n%s", subject, body)
 	return smtp.SendMail(
-		s.Addr,
+		s.cfg.GetAddr(),
 		s.auth,
-		s.Name,
+		s.cfg.GetName(),
 		[]string{to},
 		[]byte(msg),
 	)
@@ -29,34 +31,28 @@ func (s *SMTPEmailSender) SendConfirmation(to, baseURL, token string) error {
 		"Subject: %s\r\n\r\nClick to confirm your subscription: %s", subject, link,
 	)
 	return smtp.SendMail(
-		s.Addr,
+		s.cfg.GetAddr(),
 		s.auth,
-		s.Name,
+		s.cfg.GetName(),
 		[]string{to},
 		[]byte(message),
 	)
 }
 
 type SMTPEmailSender struct {
-	Host string
-	Addr string
-	Name string
-	Pass string
+	cfg  config.SMTPSettings
 	auth smtp.Auth
 }
 
-func NewSMTPEmailSender(host, addr, name, pass string) *SMTPEmailSender {
+func NewSMTPEmailSender(cfg config.SMTPSettings) *SMTPEmailSender {
 	return &SMTPEmailSender{
-		Host: host,
-		Addr: addr,
-		Name: name,
-		Pass: pass,
+		cfg: cfg,
 	}
 }
 
 func (s *SMTPEmailSender) ensureAuth() error {
 	if s.auth == nil {
-		s.auth = smtp.PlainAuth("", s.Name, s.Pass, s.Host)
+		s.auth = smtp.PlainAuth("", s.cfg.GetName(), s.cfg.GetPass(), s.cfg.GetHost())
 	}
 	return nil
 }

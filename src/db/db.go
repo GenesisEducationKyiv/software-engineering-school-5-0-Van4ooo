@@ -17,8 +17,8 @@ var DB *gorm.DB
 
 const migrationsDir = "migrations"
 
-func Init(postgres config.Postgres) {
-	dbConn := openGormDB(postgres.URL)
+func Init(postgres config.DBSettings) {
+	dbConn := openGormDB(postgres.GetURL())
 	DB = dbConn
 	sqlDB := getSQLDB(dbConn)
 	runMigrations(sqlDB)

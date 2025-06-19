@@ -1,4 +1,4 @@
-package te
+package tests
 
 import (
 	"fmt"

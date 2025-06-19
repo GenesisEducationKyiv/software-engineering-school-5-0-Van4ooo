@@ -5,53 +5,100 @@ import (
 	"log"
 	"time"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
+	"gorm.io/gorm"
 
 	"github.com/robfig/cron/v3"
+
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
 )
 
-type Scheduler struct {
+type JobScheduler interface {
+	AddFunc(spec string, cmd func()) (cron.EntryID, error)
+	Start()
+	GetSchedules() []SchedulerConfig
+}
+
+type CronScheduler struct {
+	cron      *cron.Cron
+	schedules []SchedulerConfig
+}
+
+func NewCronScheduler(loc *time.Location, schedules []SchedulerConfig) *CronScheduler {
+	return &CronScheduler{
+		cron:      cron.New(cron.WithLocation(loc)),
+		schedules: schedules,
+	}
+}
+
+func (s *CronScheduler) AddFunc(spec string, cmd func()) (cron.EntryID, error) {
+	return s.cron.AddFunc(spec, cmd)
+}
+
+func (s *CronScheduler) Start() {
+	s.cron.Start()
+}
+
+func (s *CronScheduler) GetSchedules() []SchedulerConfig {
+	return s.schedules
+}
+
+func RunScheduler(cfg config.AppSettings, db *gorm.DB) {
+	schedules := []SchedulerConfig{
+		{Spec: "0 8 * * *", Frequency: "daily"},
+		{Spec: "0 * * * *", Frequency: "hourly"},
+	}
+	scheduler := NewCronScheduler(time.UTC, schedules)
+
+	store := repositories.NewSubscriptionStore(db)
+	weatherService := NewOpenWeatherService(cfg.GetWeatherAPI())
+	emailSender := NewSMTPEmailSender(cfg.GetSMTP())
+
+	svc := NewSchedulerService(scheduler, store, weatherService, emailSender)
+
+	go svc.Start()
+	log.Println("Scheduler started")
+}
+
+type SchedulerConfig struct {
+	Spec      string
+	Frequency string
+}
+
+type SchedulerService struct {
+	scheduler      JobScheduler
 	store          repositories.SubscriptionStore
-	WeatherService WeatherService
-	EmailSender    EmailSender
+	weatherService WeatherService
+	emailSender    EmailSender
 }
 
-type EmailSender interface {
-	Send(to, subject, body string) error
-	SendConfirmation(to, baseURL, token string) error
-}
-
-func NewScheduler(
+func NewSchedulerService(
+	scheduler JobScheduler,
 	store repositories.SubscriptionStore,
 	service WeatherService,
-	sender EmailSender) *Scheduler {
-	return &Scheduler{
+	sender EmailSender,
+) *SchedulerService {
+	return &SchedulerService{
+		scheduler:      scheduler,
 		store:          store,
-		WeatherService: service,
-		EmailSender:    sender,
+		weatherService: service,
+		emailSender:    sender,
 	}
 }
 
-func (s *Scheduler) Start() {
-	c := cron.New(cron.WithLocation(time.UTC))
-
-	if _, err := c.AddFunc("0 * * * *", func() {
-		s.sendWeatherUpdates("hourly")
-	}); err != nil {
-		log.Fatalf("Error scheduling hourly updates: %v", err)
+func (s *SchedulerService) Start() {
+	for _, cfg := range s.scheduler.GetSchedules() {
+		if _, err := s.scheduler.AddFunc(cfg.Spec, func(freq string) func() {
+			return func() { s.sendWeatherUpdates(freq) }
+		}(cfg.Frequency)); err != nil {
+			log.Fatalf("Error scheduling %s updates (%s): %v", cfg.Frequency, cfg.Spec, err)
+		}
 	}
-
-	if _, err := c.AddFunc("0 8 * * *", func() {
-		s.sendWeatherUpdates("daily")
-	}); err != nil {
-		log.Fatalf("Error scheduling daily updates: %v", err)
-	}
-
-	c.Start()
+	s.scheduler.Start()
 	select {}
 }
 
-func (s *Scheduler) sendWeatherUpdates(freq string) {
+func (s *SchedulerService) sendWeatherUpdates(freq string) {
 	subs, err := s.store.FetchByFrequency(freq)
 	if err != nil {
 		log.Printf("Error fetching subscriptions: %v", err)
@@ -59,7 +106,7 @@ func (s *Scheduler) sendWeatherUpdates(freq string) {
 	}
 
 	for _, sub := range subs {
-		weather, err := s.WeatherService.GetWeather(sub.City)
+		weather, err := s.weatherService.GetWeather(sub.City)
 		if err != nil {
 			log.Printf("Error fetching weather for %s: %v", sub.City, err)
 			continue
@@ -73,7 +120,7 @@ func (s *Scheduler) sendWeatherUpdates(freq string) {
 			weather.Humidity,
 		)
 
-		if err := s.EmailSender.Send(sub.Email, "Weather Update", body); err != nil {
+		if err := s.emailSender.Send(sub.Email, "Weather Update", body); err != nil {
 			log.Printf("Error sending email to %s: %v", sub.Email, err)
 		}
 	}

@@ -7,6 +7,11 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 )
 
+type EmailSender interface {
+	Send(to, subject, body string) error
+	SendConfirmation(to, baseURL, token string) error
+}
+
 func (s *SMTPEmailSender) Send(to, subject, body string) error {
 	if err := s.ensureAuth(); err != nil {
 		return err

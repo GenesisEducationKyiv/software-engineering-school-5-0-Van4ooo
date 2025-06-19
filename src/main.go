@@ -1,15 +1,14 @@
 package main
 
 import (
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 	"log"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/routers"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
 func main() {
@@ -23,10 +22,7 @@ func main() {
 	r := gin.Default()
 	routers.SetupRoutes(r, cfg, db.DB)
 
-	weatherSvc := services.NewOpenWeatherService(cfg.GetWeatherAPI())
-	emailSender := services.NewSMTPEmailSender(cfg.GetSMTP())
-	store := repositories.NewSubscriptionStore(db.DB)
-	go services.NewScheduler(store, weatherSvc, emailSender).Start()
+	services.RunScheduler(cfg, db.DB)
 
 	addr := ":8080"
 	log.Printf("Starting server on %s", addr)

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -9,6 +8,7 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/routers"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
 func main() {

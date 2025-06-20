@@ -5,21 +5,33 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 )
 
-func GetWeather(c *gin.Context) {
+type WeatherService interface {
+	GetByCity(city string) (*models.Weather, error)
+}
+
+type WeatherHandler struct {
+	service WeatherService
+}
+
+func NewWeatherHandler(svc WeatherService) *WeatherHandler {
+	return &WeatherHandler{service: svc}
+}
+
+func (h *WeatherHandler) GetWeather(c *gin.Context) {
 	city := c.Query("city")
 	if city == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "City is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "city parameter is required"})
 		return
 	}
 
-	data, err := services.FetchCurrentWeather(city)
+	weather, err := h.service.GetByCity(city)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, data)
+	c.JSON(http.StatusOK, gin.H{"weather": weather})
 }

@@ -8,45 +8,134 @@ import (
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/email"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/weather"
 )
 
-func StartScheduler() {
-	c := cron.New(cron.WithLocation(time.UTC))
+type JobScheduler interface {
+	AddFunc(spec string, cmd func()) (cron.EntryID, error)
+	Start()
+	GetSchedules() []SchedulerConfig
+}
 
-	if _, err := c.AddFunc("0 * * * *", func() {
-		sendWeatherUpdates("hourly")
-	}); err != nil {
-		log.Fatalf("Error adding hourly updates: %v", err)
+type CronScheduler struct {
+	cron      *cron.Cron
+	schedules []SchedulerConfig
+}
+
+func NewCronScheduler(loc *time.Location, schedules []SchedulerConfig) *CronScheduler {
+	return &CronScheduler{
+		cron:      cron.New(cron.WithLocation(loc)),
+		schedules: schedules,
 	}
+}
 
-	if _, err := c.AddFunc("0 8 * * *", func() {
-		sendWeatherUpdates("daily")
-	}); err != nil {
-		log.Fatalf("Error adding daily updates: %v", err)
+func (s *CronScheduler) AddFunc(spec string, cmd func()) (cron.EntryID, error) {
+	return s.cron.AddFunc(spec, cmd)
+}
+
+func (s *CronScheduler) Start() {
+	s.cron.Start()
+}
+
+func (s *CronScheduler) GetSchedules() []SchedulerConfig {
+	return s.schedules
+}
+
+func RunScheduler(cfg config.AppSettings, db *gorm.DB) {
+	schedules := []SchedulerConfig{
+		{Spec: "0 8 * * *", Frequency: "daily"},
+		{Spec: "0 * * * *", Frequency: "hourly"},
 	}
+	scheduler := NewCronScheduler(time.UTC, schedules)
 
-	c.Start()
+	store := repositories.NewSubscriptionStore(db)
+	weatherService := weather.NewService(cfg.GetWeatherAPI())
+	emailSender := email.NewSender(cfg.GetSMTP())
+
+	svc := NewSchedulerService(scheduler, store, weatherService, emailSender)
+
+	go svc.Start()
+	log.Println("Scheduler started")
+}
+
+type SchedulerConfig struct {
+	Spec      string
+	Frequency string
+}
+
+type SubscriptionsFetcher interface {
+	FetchByFrequency(freq string) ([]models.Subscription, error)
+}
+
+type SchedulerService struct {
+	scheduler      JobScheduler
+	store          SubscriptionsFetcher
+	weatherService WeatherService
+	emailSender    EmailSender
+}
+
+type EmailSender interface {
+	Send(template email.Template) error
+}
+
+type WeatherService interface {
+	GetByCity(city string) (*models.Weather, error)
+}
+
+func NewSchedulerService(
+	scheduler JobScheduler,
+	store SubscriptionsFetcher,
+	service WeatherService,
+	sender EmailSender,
+) *SchedulerService {
+	return &SchedulerService{
+		scheduler:      scheduler,
+		store:          store,
+		weatherService: service,
+		emailSender:    sender,
+	}
+}
+
+func (s *SchedulerService) Start() {
+	for _, cfg := range s.scheduler.GetSchedules() {
+		if _, err := s.scheduler.AddFunc(cfg.Spec, func(freq string) func() {
+			return func() { s.sendWeatherUpdates(freq) }
+		}(cfg.Frequency)); err != nil {
+			log.Fatalf("Error scheduling %s updates (%s): %v", cfg.Frequency, cfg.Spec, err)
+		}
+	}
+	s.scheduler.Start()
 	select {}
 }
 
-func sendWeatherUpdates(freq string) {
-	var subs []models.Subscription
-	result := db.DB.Where("frequency = ? AND confirmed = true", freq).Find(&subs)
-	if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
-		log.Printf("Error fetching subscriptions: %v", result.Error)
+func (s *SchedulerService) sendWeatherUpdates(freq string) {
+	subs, err := s.store.FetchByFrequency(freq)
+	if err != nil {
+		log.Printf("Error fetching subscriptions: %v", err)
 		return
 	}
+
 	for _, sub := range subs {
-		weather, err := FetchCurrentWeather(sub.City)
+		weather, err := s.weatherService.GetByCity(sub.City)
 		if err != nil {
 			log.Printf("Error fetching weather for %s: %v", sub.City, err)
 			continue
 		}
-		body := fmt.Sprintf("Current weather in %s: %.1f°C, %s (Humidity %.0f%%)",
-			sub.City, weather.Temperature, weather.Description, weather.Humidity)
-		if err := SendEmail(sub.Email, "Weather Update", body); err != nil {
+
+		body := fmt.Sprintf(
+			"Current weather in %s: %.1f°C, %s (Humidity %.0f%%)",
+			sub.City,
+			weather.Temperature,
+			weather.Description,
+			weather.Humidity,
+		)
+
+		tmpl := email.NewSimpleMail(sub.Email, "Weather Update", body)
+		if err := s.emailSender.Send(tmpl); err != nil {
 			log.Printf("Error sending email to %s: %v", sub.Email, err)
 		}
 	}

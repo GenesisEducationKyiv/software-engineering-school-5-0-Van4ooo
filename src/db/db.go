@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"log"
 
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
+
 	"github.com/golang-migrate/migrate/v4"
 	migrateDriver "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -15,8 +17,8 @@ var DB *gorm.DB
 
 const migrationsDir = "migrations"
 
-func Init(databaseURL string) {
-	dbConn := openGormDB(databaseURL)
+func Init(postgres config.DBSettings) {
+	dbConn := openGormDB(postgres.GetURL())
 	DB = dbConn
 	sqlDB := getSQLDB(dbConn)
 	runMigrations(sqlDB)

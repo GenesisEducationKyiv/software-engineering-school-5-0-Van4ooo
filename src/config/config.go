@@ -1,66 +1,83 @@
 package config
 
 import (
-	"log"
-	"os"
-	"time"
+	"errors"
+	"fmt"
+	"strings"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
-	swaggerFiles "github.com/swaggo/files"
-	ginSwagger "github.com/swaggo/gin-swagger"
-
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/handlers"
+	"github.com/go-playground/validator/v10"
+	"github.com/joho/godotenv"
 )
 
-type Config struct {
-	DatabaseURL   string
-	WeatherAPIKey string
+var validate *validator.Validate
+
+func init() {
+	validate = validator.New()
 }
 
-func Load() Config {
-	db := os.Getenv("DATABASE_URL")
-	key := os.Getenv("WEATHER_API_KEY")
+type ConfigSource interface {
+	Load(provider EnvProvider) error
+	Validate() error
+}
 
-	if db == "" || key == "" {
-		log.Fatal("DATABASE_URL and WEATHER_API_KEY must be set!!")
+func mapValidationErrorsToEnvVars(err error, structName string,
+	fieldToEnvNameMap map[string]string) error {
+	var validationErrors validator.ValidationErrors
+	if !errors.As(err, &validationErrors) {
+		return err
 	}
 
-	return Config{
-		DatabaseURL:   db,
-		WeatherAPIKey: key,
+	var errorMessages []string
+	for _, fieldErr := range validationErrors {
+		envVarName, ok := fieldToEnvNameMap[fieldErr.Field()]
+		if !ok {
+			errorMessages = append(errorMessages, fmt.Sprintf("Field '%s' in %s: %s",
+				fieldErr.Field(), structName, fieldErr.Tag()))
+			continue
+		}
+
+		switch fieldErr.Tag() {
+		case "required":
+			errorMessages = append(errorMessages, fmt.Sprintf(
+				"\n[!] Environment variable '%s' is missing or empty. "+
+					"(Required for field '%s')",
+				envVarName, fieldErr.Field()))
+		case "url":
+			errorMessages = append(errorMessages, fmt.Sprintf(
+				"\n[!] Environment variable '%s' contains an invalid URL. "+
+					"(Field '%s')",
+				envVarName, fieldErr.Field()))
+		default:
+			errorMessages = append(errorMessages, fmt.Sprintf(
+				"\n[!] Environment variable '%s' failed validation for tag '%s'. "+
+					"(Field '%s')",
+				envVarName, fieldErr.Tag(), fieldErr.Field()))
+		}
 	}
+
+	if len(errorMessages) == 0 {
+		return err
+	}
+	return errors.New(strings.Join(errorMessages, "; "))
 }
 
-func SetupAPI(r *gin.Engine) {
-	api := r.Group("/api")
-
-	api.GET("/weather", handlers.GetWeather)
-	api.POST("/subscribe", handlers.Subscribe)
-	api.GET("/confirm/:token", handlers.Confirm)
-	api.GET("/unsubscribe/:token", handlers.Unsubscribe)
+func Config() (*AppConfig, error) {
+	if err := godotenv.Load(".env"); err != nil {
+		fmt.Println("Warning: .env file not found or failed to load")
+	}
+	return SetupConfig(OSProvider{})
 }
 
-func SetupSwagger(r *gin.Engine) {
-	r.StaticFile("/docs/swagger.yaml", "./docs/swagger.yaml")
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(
-		swaggerFiles.Handler,
-		ginSwagger.URL("/docs/swagger.yaml"),
-	))
-}
+func SetupConfig(provider EnvProvider) (*AppConfig, error) {
+	appConfig := NewAppConfig()
 
-func SetupStaticPages(r *gin.Engine) {
-	r.GET("/subscribe", handlers.RenderSubscribePage)
-	r.Static("/static/", "static/")
-}
+	if err := appConfig.Load(provider); err != nil {
+		return nil, fmt.Errorf("failed to load application configuration: %w", err)
+	}
 
-func SetupCors(r *gin.Engine) {
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
-	}))
+	if err := appConfig.Validate(); err != nil {
+		return nil, fmt.Errorf("application configuration validation failed: %w", err)
+	}
+
+	return appConfig, nil
 }

@@ -8,63 +8,108 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/email"
 )
 
-type subscriptionRequest struct {
-	Email string `form:"email" json:"email" binding:"required,email"`
-	City  string `form:"city"  json:"city"  binding:"required"`
-	// nolint: lll
-	Frequency string `form:"frequency" json:"frequency" binding:"required,oneof=hourly daily"`
+type EmailSender interface {
+	Send(template email.Template) error
 }
 
-func Subscribe(c *gin.Context) {
-	req, err := parseSubscriptionRequest(c)
+type SubscriptionService interface {
+	RegisterNew(sub *models.SubscriptionRequest) (*models.Subscription, error)
+	ConfirmByToken(token string) error
+	CancelByToken(token string) error
+}
+
+type SubscriptionHandler struct {
+	service     SubscriptionService
+	emailSender EmailSender
+}
+
+func NewSubscriptionHandler(
+	service SubscriptionService,
+	sender EmailSender) *SubscriptionHandler {
+	return &SubscriptionHandler{service: service, emailSender: sender}
+}
+
+func (h *SubscriptionHandler) Subscribe(c *gin.Context) {
+	req := h.parseAndValidate(c)
+	if req == nil {
+		return
+	}
+
+	sub := h.registerSubscription(c, req)
+	if sub == nil {
+		return
+	}
+
+	mail := h.prepareConfirmationMail(c, sub)
+	h.sendConfirmation(c, mail)
+}
+
+func (h *SubscriptionHandler) parseAndValidate(
+	c *gin.Context) *models.SubscriptionRequest {
+	req, err := h.parseRequest(c)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		h.respondError(c, http.StatusBadRequest, err.Error())
+		return nil
 	}
+	return req
+}
 
-	token, err := saveSubscription(req)
+func (h *SubscriptionHandler) registerSubscription(c *gin.Context,
+	req *models.SubscriptionRequest) *models.Subscription {
+	sub, err := h.service.RegisterNew(req)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "email already subscribed"})
-		return
+		h.respondError(c, http.StatusConflict, "email already subscribed")
+		return nil
 	}
-
-	if err := sendConfirmation(c, req.Email, token); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send email"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Confirmation email sent"})
+	return sub
 }
 
-func Confirm(c *gin.Context) {
+func (h *SubscriptionHandler) sendConfirmation(c *gin.Context, tmpl email.Template) {
+	if err := h.emailSender.Send(tmpl); err != nil {
+		h.respondError(c, http.StatusInternalServerError, "failed to send confirmation email")
+		return
+	}
+	h.respondJSON(c, http.StatusOK, gin.H{"message": "Confirmation email sent"})
+}
+
+func (h *SubscriptionHandler) prepareConfirmationMail(c *gin.Context,
+	sub *models.Subscription) email.Template {
+	link := email.GenerateConfirmationLink(h.getBaseURL(c), sub.Token)
+	return email.NewConfirmationMail(sub.Email, link)
+}
+
+func (h *SubscriptionHandler) Confirm(c *gin.Context) {
 	token := c.Param("token")
-	if err := setSubscriptionConfirmed(token); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "token not found"})
+	if err := h.service.ConfirmByToken(token); err != nil {
+		h.respondError(c, http.StatusNotFound, "token not found")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Subscription confirmed"})
+	h.respondJSON(c, http.StatusOK, gin.H{"message": "Subscription confirmed"})
 }
 
-func Unsubscribe(c *gin.Context) {
+func (h *SubscriptionHandler) Unsubscribe(c *gin.Context) {
 	token := c.Param("token")
-	if err := deleteSubscription(token); err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "token not found"})
+	if err := h.service.CancelByToken(token); err != nil {
+		h.respondError(c, http.StatusNotFound, "token not found")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "Unsubscribed successfully"})
+	h.respondJSON(c, http.StatusOK, gin.H{"message": "Unsubscribed successfully"})
 }
 
-func parseSubscriptionRequest(c *gin.Context) (*subscriptionRequest, error) {
-	var req subscriptionRequest
-	contentType := c.GetHeader("Content-Type")
-	if strings.Contains(contentType, "application/json") {
+func (h *SubscriptionHandler) RenderSubscribePage(c *gin.Context) {
+	c.File("static/subscribe.html")
+}
+
+func (h *SubscriptionHandler) parseRequest(
+	c *gin.Context,
+) (*models.SubscriptionRequest, error) {
+	var req models.SubscriptionRequest
+	if strings.Contains(c.GetHeader("Content-Type"), "application/json") {
 		if err := c.ShouldBindJSON(&req); err != nil {
 			return nil, err
 		}
@@ -81,62 +126,22 @@ func parseSubscriptionRequest(c *gin.Context) (*subscriptionRequest, error) {
 		req.City = vals.Get("city")
 		req.Frequency = vals.Get("frequency")
 	}
-	if err := validateRequest(req); err != nil {
-		return nil, err
-	}
 	return &req, nil
 }
 
-func validateRequest(req subscriptionRequest) error {
-	if req.Email == "" || req.City == "" {
-		return fmt.Errorf("email and city are required")
-	}
-	if req.Frequency != "hourly" && req.Frequency != "daily" {
-		return fmt.Errorf("frequency must be 'hourly' or 'daily'")
-	}
-	return nil
+func (h *SubscriptionHandler) respondError(c *gin.Context, code int, msg string) {
+	c.JSON(code, gin.H{"error": msg})
 }
 
-func saveSubscription(req *subscriptionRequest) (string, error) {
-	token := uuid.NewString()
-	sub := &models.Subscription{
-		Email:     req.Email,
-		City:      req.City,
-		Frequency: req.Frequency,
-		Token:     token,
-	}
-	if err := db.DB.Create(sub).Error; err != nil {
-		return "", err
-	}
-	return token, nil
+func (h *SubscriptionHandler) respondJSON(
+	c *gin.Context, code int, payload interface{}) {
+	c.JSON(code, payload)
 }
 
-func sendConfirmation(c *gin.Context, email, token string) error {
-	baseURL := getBaseURL(c)
-	return services.SendConfirmationEmail(email, baseURL, token)
-}
-
-func getBaseURL(c *gin.Context) string {
+func (h *SubscriptionHandler) getBaseURL(c *gin.Context) string {
 	scheme := "http"
 	if c.Request.TLS != nil {
 		scheme = "https"
 	}
 	return fmt.Sprintf("%s://%s", scheme, c.Request.Host)
-}
-
-func setSubscriptionConfirmed(token string) error {
-	var sub models.Subscription
-	if err := db.DB.Where("token = ?", token).First(&sub).Error; err != nil {
-		return err
-	}
-	sub.Confirmed = true
-	return db.DB.Save(&sub).Error
-}
-
-func deleteSubscription(token string) error {
-	return db.DB.Where("token = ?", token).Delete(&models.Subscription{}).Error
-}
-
-func RenderSubscribePage(c *gin.Context) {
-	c.File("static/subscribe.html")
 }

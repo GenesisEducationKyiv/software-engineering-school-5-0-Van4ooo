@@ -7,23 +7,26 @@ import (
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/db"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/routers"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 )
 
 func main() {
-	cfg := config.Load()
-	db.Init(cfg.DatabaseURL)
+	cfg, err := config.Config()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db.Init(cfg.GetDB())
 
 	r := gin.Default()
+	routers.SetupRoutes(r, cfg, db.DB)
 
-	config.SetupCors(r)
-	config.SetupStaticPages(r)
-	config.SetupAPI(r)
-	config.SetupSwagger(r)
+	services.RunScheduler(cfg, db.DB)
 
-	go services.StartScheduler()
-
-	if err := r.Run(":8080"); err != nil {
-		log.Fatal("Failed to start server: ", err)
+	addr := ":8080"
+	log.Printf("Starting server on %s", addr)
+	if err := r.Run(addr); err != nil {
+		log.Fatalf("Server error: %v", err)
 	}
 }

@@ -11,3 +11,19 @@ type Subscription struct {
 	Confirmed bool   `gorm:"default:false"`
 	CreatedAt time.Time
 }
+
+type SubscriptionRequest struct {
+	Email string `form:"email" json:"email" binding:"required,email"`
+	City  string `form:"city" json:"city" binding:"required"`
+	// nolint: lll
+	Frequency string `form:"frequency" json:"frequency" binding:"required,oneof=hourly daily"`
+}
+
+func (r *SubscriptionRequest) ToSubscription(token string) *Subscription {
+	return &Subscription{
+		Email:     r.Email,
+		City:      r.City,
+		Frequency: r.Frequency,
+		Token:     token,
+	}
+}

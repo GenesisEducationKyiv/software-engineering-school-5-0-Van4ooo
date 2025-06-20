@@ -18,3 +18,12 @@ type SubscriptionRequest struct {
 	// nolint: lll
 	Frequency string `form:"frequency" json:"frequency" binding:"required,oneof=hourly daily"`
 }
+
+func (r *SubscriptionRequest) ToSubscription(token string) *Subscription {
+	return &Subscription{
+		Email:     r.Email,
+		City:      r.City,
+		Frequency: r.Frequency,
+		Token:     token,
+	}
+}

@@ -4,6 +4,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/subscription"
+
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/email"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
@@ -22,7 +24,7 @@ func NewAPIRoutes(cfg config.AppSettings, db *gorm.DB) *APIRoutes {
 		services.NewOpenWeatherService(cfg.GetWeatherAPI()))
 
 	subHandler := handlers.NewSubscriptionHandler(
-		services.NewSubscriptionService(repositories.NewGormSubscriptionStorage(db)),
+		subscription.NewService(repositories.NewGormSubscription(db)),
 		email.NewSender(cfg.GetSMTP()))
 
 	return &APIRoutes{
@@ -37,6 +39,6 @@ func (a *APIRoutes) Setup(r *gin.Engine) {
 		api.GET("/weather", a.WeatherHandler.GetWeather)
 		api.POST("/subscribe", a.SubscriptionHandler.Subscribe)
 		api.GET("/confirm/:token", a.SubscriptionHandler.Confirm)
-		api.DELETE("/unsubscribe/:token", a.SubscriptionHandler.Unsubscribe)
+		api.GET("/unsubscribe/:token", a.SubscriptionHandler.Unsubscribe)
 	}
 }

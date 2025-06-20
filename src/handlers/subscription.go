@@ -10,7 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/email"
 )
 
@@ -18,38 +17,70 @@ type EmailSender interface {
 	Send(template email.Template) error
 }
 
+type SubscriptionService interface {
+	RegisterNew(sub *models.SubscriptionRequest) (*models.Subscription, error)
+	ConfirmByToken(token string) error
+	CancelByToken(token string) error
+}
+
 type SubscriptionHandler struct {
-	service     services.SubscriptionService
+	service     SubscriptionService
 	emailSender EmailSender
 }
 
 func NewSubscriptionHandler(
-	service services.SubscriptionService,
+	service SubscriptionService,
 	sender EmailSender) *SubscriptionHandler {
 	return &SubscriptionHandler{service: service, emailSender: sender}
 }
 
 func (h *SubscriptionHandler) Subscribe(c *gin.Context) {
+	req := h.parseAndValidate(c)
+	if req == nil {
+		return
+	}
+
+	sub := h.registerSubscription(c, req)
+	if sub == nil {
+		return
+	}
+
+	mail := h.prepareConfirmationMail(c, sub)
+	h.sendConfirmation(c, mail)
+}
+
+func (h *SubscriptionHandler) parseAndValidate(
+	c *gin.Context) *models.SubscriptionRequest {
 	req, err := h.parseRequest(c)
 	if err != nil {
 		h.respondError(c, http.StatusBadRequest, err.Error())
-		return
+		return nil
 	}
-	token, err := h.service.RegisterNew(req)
+	return req
+}
+
+func (h *SubscriptionHandler) registerSubscription(c *gin.Context,
+	req *models.SubscriptionRequest) *models.Subscription {
+	sub, err := h.service.RegisterNew(req)
 	if err != nil {
 		h.respondError(c, http.StatusConflict, "email already subscribed")
-		return
+		return nil
 	}
+	return sub
+}
 
-	link := email.GenerateConfirmationLink(h.getBaseURL(c), token)
-	tmpl := email.NewConfirmationMail(req.Email, link)
-
-	err = h.emailSender.Send(tmpl)
-	if err != nil {
-		h.respondError(c, http.StatusInternalServerError, "failed to send email")
+func (h *SubscriptionHandler) sendConfirmation(c *gin.Context, tmpl email.Template) {
+	if err := h.emailSender.Send(tmpl); err != nil {
+		h.respondError(c, http.StatusInternalServerError, "failed to send confirmation email")
 		return
 	}
 	h.respondJSON(c, http.StatusOK, gin.H{"message": "Confirmation email sent"})
+}
+
+func (h *SubscriptionHandler) prepareConfirmationMail(c *gin.Context,
+	sub *models.Subscription) email.Template {
+	link := email.GenerateConfirmationLink(h.getBaseURL(c), sub.Token)
+	return email.NewConfirmationMail(sub.Email, link)
 }
 
 func (h *SubscriptionHandler) Confirm(c *gin.Context) {

@@ -12,6 +12,7 @@ import (
 	"github.com/robfig/cron/v3"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
 )
 
@@ -67,9 +68,13 @@ type SchedulerConfig struct {
 	Frequency string
 }
 
+type SubscriptionsFetcher interface {
+	FetchByFrequency(freq string) ([]models.Subscription, error)
+}
+
 type SchedulerService struct {
 	scheduler      JobScheduler
-	store          repositories.SubscriptionStore
+	store          SubscriptionsFetcher
 	weatherService WeatherService
 	emailSender    EmailSender
 }
@@ -80,7 +85,7 @@ type EmailSender interface {
 
 func NewSchedulerService(
 	scheduler JobScheduler,
-	store repositories.SubscriptionStore,
+	store SubscriptionsFetcher,
 	service WeatherService,
 	sender EmailSender,
 ) *SchedulerService {

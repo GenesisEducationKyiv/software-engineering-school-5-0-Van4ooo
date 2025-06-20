@@ -54,7 +54,7 @@ func RunScheduler(cfg config.AppSettings, db *gorm.DB) {
 
 	store := repositories.NewSubscriptionStore(db)
 	weatherService := NewOpenWeatherService(cfg.GetWeatherAPI())
-	emailSender := email.NewSMTPEmailSender(cfg.GetSMTP())
+	emailSender := email.NewSender(cfg.GetSMTP())
 
 	svc := NewSchedulerService(scheduler, store, weatherService, emailSender)
 
@@ -75,7 +75,7 @@ type SchedulerService struct {
 }
 
 type EmailSender interface {
-	Send(template email.EmailTemplate) error
+	Send(template email.Template) error
 }
 
 func NewSchedulerService(
@@ -126,7 +126,7 @@ func (s *SchedulerService) sendWeatherUpdates(freq string) {
 			weather.Humidity,
 		)
 
-		tmpl := email.NewSimpleEmail(sub.Email, "Weather Update", body)
+		tmpl := email.NewSimpleMail(sub.Email, "Weather Update", body)
 		if err := s.emailSender.Send(tmpl); err != nil {
 			log.Printf("Error sending email to %s: %v", sub.Email, err)
 		}

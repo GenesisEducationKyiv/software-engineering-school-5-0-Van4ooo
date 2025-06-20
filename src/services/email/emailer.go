@@ -6,12 +6,12 @@ import (
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 )
 
-type EmailTemplate interface {
+type Template interface {
 	GetTo() string
 	GetMsg() []byte
 }
 
-func (s *SMTPEmailSender) Send(template EmailTemplate) error {
+func (s *Sender) Send(template Template) error {
 	if err := s.ensureAuth(); err != nil {
 		return err
 	}
@@ -25,18 +25,18 @@ func (s *SMTPEmailSender) Send(template EmailTemplate) error {
 	)
 }
 
-type SMTPEmailSender struct {
+type Sender struct {
 	cfg  config.SMTPSettings
 	auth smtp.Auth
 }
 
-func NewSMTPEmailSender(cfg config.SMTPSettings) *SMTPEmailSender {
-	return &SMTPEmailSender{
+func NewSender(cfg config.SMTPSettings) *Sender {
+	return &Sender{
 		cfg: cfg,
 	}
 }
 
-func (s *SMTPEmailSender) ensureAuth() error {
+func (s *Sender) ensureAuth() error {
 	if s.auth == nil {
 		s.auth = smtp.PlainAuth("", s.cfg.GetName(), s.cfg.GetPass(), s.cfg.GetHost())
 	}

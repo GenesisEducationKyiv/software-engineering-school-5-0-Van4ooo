@@ -2,46 +2,46 @@ package email
 
 import "fmt"
 
-type SimpleEmail struct {
+type SimpleMail struct {
 	To      string
 	Subject string
 	Body    string
 }
 
-func (e SimpleEmail) GetTo() string {
+func (e SimpleMail) GetTo() string {
 	return e.To
 }
 
-func (e SimpleEmail) GetMsg() []byte {
+func (e SimpleMail) GetMsg() []byte {
 	return formatMessage(e.Subject, e.Body)
 }
 
-func NewSimpleEmail(to, subject, body string) SimpleEmail {
-	return SimpleEmail{
+func NewSimpleMail(to, subject, body string) SimpleMail {
+	return SimpleMail{
 		To:      to,
 		Subject: subject,
 		Body:    body,
 	}
 }
 
-type ConfirmationEmail struct {
+type ConfirmationMail struct {
 	To   string
 	Link string
 }
 
-func (e ConfirmationEmail) GetTo() string {
+func (e ConfirmationMail) GetTo() string {
 	return e.To
 }
 
-func (e ConfirmationEmail) GetMsg() []byte {
+func (e ConfirmationMail) GetMsg() []byte {
 	subject := "Confirm your subscription"
 	body := fmt.Sprintf("Click to confirm: %s", e.Link)
 
 	return formatMessage(subject, body)
 }
 
-func NewConfirmationEmail(to, link string) ConfirmationEmail {
-	return ConfirmationEmail{
+func NewConfirmationMail(to, link string) ConfirmationMail {
+	return ConfirmationMail{
 		To:   to,
 		Link: link,
 	}

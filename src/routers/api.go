@@ -23,7 +23,7 @@ func NewAPIRoutes(cfg config.AppSettings, db *gorm.DB) *APIRoutes {
 
 	subHandler := handlers.NewSubscriptionHandler(
 		services.NewSubscriptionService(repositories.NewGormSubscriptionStorage(db)),
-		email.NewSMTPEmailSender(cfg.GetSMTP()))
+		email.NewSender(cfg.GetSMTP()))
 
 	return &APIRoutes{
 		WeatherHandler:      weatherHandler,

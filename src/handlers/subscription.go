@@ -15,7 +15,7 @@ import (
 )
 
 type EmailSender interface {
-	Send(template email.EmailTemplate) error
+	Send(template email.Template) error
 }
 
 type SubscriptionHandler struct {
@@ -42,7 +42,7 @@ func (h *SubscriptionHandler) Subscribe(c *gin.Context) {
 	}
 
 	link := email.GenerateConfirmationLink(h.getBaseURL(c), token)
-	tmpl := email.NewConfirmationEmail(req.Email, link)
+	tmpl := email.NewConfirmationMail(req.Email, link)
 
 	err = h.emailSender.Send(tmpl)
 	if err != nil {

@@ -5,6 +5,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/email"
+
 	"gorm.io/gorm"
 
 	"github.com/robfig/cron/v3"
@@ -52,7 +54,7 @@ func RunScheduler(cfg config.AppSettings, db *gorm.DB) {
 
 	store := repositories.NewSubscriptionStore(db)
 	weatherService := NewOpenWeatherService(cfg.GetWeatherAPI())
-	emailSender := NewSMTPEmailSender(cfg.GetSMTP())
+	emailSender := email.NewSMTPEmailSender(cfg.GetSMTP())
 
 	svc := NewSchedulerService(scheduler, store, weatherService, emailSender)
 
@@ -70,6 +72,10 @@ type SchedulerService struct {
 	store          repositories.SubscriptionStore
 	weatherService WeatherService
 	emailSender    EmailSender
+}
+
+type EmailSender interface {
+	Send(template email.EmailTemplate) error
 }
 
 func NewSchedulerService(
@@ -120,7 +126,8 @@ func (s *SchedulerService) sendWeatherUpdates(freq string) {
 			weather.Humidity,
 		)
 
-		if err := s.emailSender.Send(sub.Email, "Weather Update", body); err != nil {
+		tmpl := email.NewSimpleEmail(sub.Email, "Weather Update", body)
+		if err := s.emailSender.Send(tmpl); err != nil {
 			log.Printf("Error sending email to %s: %v", sub.Email, err)
 		}
 	}

@@ -7,21 +7,25 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
-
 	"github.com/gin-gonic/gin"
 
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/email"
 )
+
+type EmailSender interface {
+	Send(template email.EmailTemplate) error
+}
 
 type SubscriptionHandler struct {
 	service     services.SubscriptionService
-	emailSender services.EmailSender
+	emailSender EmailSender
 }
 
 func NewSubscriptionHandler(
 	service services.SubscriptionService,
-	sender services.EmailSender) *SubscriptionHandler {
+	sender EmailSender) *SubscriptionHandler {
 	return &SubscriptionHandler{service: service, emailSender: sender}
 }
 
@@ -37,7 +41,10 @@ func (h *SubscriptionHandler) Subscribe(c *gin.Context) {
 		return
 	}
 
-	err = h.emailSender.SendConfirmation(req.Email, h.getBaseURL(c), token)
+	link := email.GenerateConfirmationLink(h.getBaseURL(c), token)
+	tmpl := email.NewConfirmationEmail(req.Email, link)
+
+	err = h.emailSender.Send(tmpl)
 	if err != nil {
 		h.respondError(c, http.StatusInternalServerError, "failed to send email")
 		return

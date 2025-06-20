@@ -5,15 +5,19 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 )
 
-type WeatherHandler struct {
-	WeatherService services.WeatherService
+type WeatherService interface {
+	GetByCity(city string) (*models.Weather, error)
 }
 
-func NewWeatherHandler(svc services.WeatherService) *WeatherHandler {
-	return &WeatherHandler{WeatherService: svc}
+type WeatherHandler struct {
+	service WeatherService
+}
+
+func NewWeatherHandler(svc WeatherService) *WeatherHandler {
+	return &WeatherHandler{service: svc}
 }
 
 func (h *WeatherHandler) GetWeather(c *gin.Context) {
@@ -23,7 +27,7 @@ func (h *WeatherHandler) GetWeather(c *gin.Context) {
 		return
 	}
 
-	weather, err := h.WeatherService.GetWeather(city)
+	weather, err := h.service.GetByCity(city)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

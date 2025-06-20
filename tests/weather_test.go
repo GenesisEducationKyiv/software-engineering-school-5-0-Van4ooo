@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/weather"
 )
 
 // nolint: goconst
@@ -33,7 +33,7 @@ func TestFetchCurrentWeather(t *testing.T) {
 		BaseURL: baseURL,
 	}
 
-	weather, err := services.NewOpenWeatherService(cfg).GetWeather("Lviv")
+	weather, err := weather.NewService(cfg).GetByCity("Lviv")
 
 	assert.NoError(t, err)
 	assert.Equal(t, 20.5, weather.Temperature)
@@ -58,7 +58,7 @@ func TestFetchCurrentWeatherError(t *testing.T) {
 		BaseURL: baseURL,
 	}
 
-	weather, err := services.NewOpenWeatherService(cfg).GetWeather("Lviv")
+	weather, err := weather.NewService(cfg).GetByCity("Lviv")
 
 	assert.Error(t, err)
 	assert.Nil(t, weather)

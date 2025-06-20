@@ -5,15 +5,14 @@ import (
 	"log"
 	"time"
 
-	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/email"
-
-	"gorm.io/gorm"
-
 	"github.com/robfig/cron/v3"
+	"gorm.io/gorm"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/repositories"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/email"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/services/weather"
 )
 
 type JobScheduler interface {
@@ -54,7 +53,7 @@ func RunScheduler(cfg config.AppSettings, db *gorm.DB) {
 	scheduler := NewCronScheduler(time.UTC, schedules)
 
 	store := repositories.NewSubscriptionStore(db)
-	weatherService := NewOpenWeatherService(cfg.GetWeatherAPI())
+	weatherService := weather.NewService(cfg.GetWeatherAPI())
 	emailSender := email.NewSender(cfg.GetSMTP())
 
 	svc := NewSchedulerService(scheduler, store, weatherService, emailSender)
@@ -81,6 +80,10 @@ type SchedulerService struct {
 
 type EmailSender interface {
 	Send(template email.Template) error
+}
+
+type WeatherService interface {
+	GetByCity(city string) (*models.Weather, error)
 }
 
 func NewSchedulerService(
@@ -117,7 +120,7 @@ func (s *SchedulerService) sendWeatherUpdates(freq string) {
 	}
 
 	for _, sub := range subs {
-		weather, err := s.weatherService.GetWeather(sub.City)
+		weather, err := s.weatherService.GetByCity(sub.City)
 		if err != nil {
 			log.Printf("Error fetching weather for %s: %v", sub.City, err)
 			continue

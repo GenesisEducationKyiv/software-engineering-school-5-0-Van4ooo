@@ -1,27 +1,24 @@
-package services
+package weather
 
 import (
 	"fmt"
 	"log"
 
 	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/config"
+	"github.com/GenesisEducationKyiv/software-engineering-school-5-0-Van4ooo/src/models"
 )
 
-type WeatherService interface {
-	GetWeather(city string) (*Weather, error)
-}
-
-type OpenWeatherService struct {
+type Service struct {
 	cfg config.WeatherSettings
 }
 
-func NewOpenWeatherService(cfg config.WeatherSettings) *OpenWeatherService {
-	return &OpenWeatherService{
+func NewService(cfg config.WeatherSettings) *Service {
+	return &Service{
 		cfg: cfg,
 	}
 }
 
-func (s *OpenWeatherService) GetWeather(city string) (*Weather, error) {
+func (s *Service) GetByCity(city string) (*models.Weather, error) {
 	log.Printf("Fetching weather for %q; APIKey=%s, BaseURL=%s",
 		city, s.cfg.GetKey(), s.cfg.GetBaseURL())
 
@@ -30,7 +27,7 @@ func (s *OpenWeatherService) GetWeather(city string) (*Weather, error) {
 		return nil, fmt.Errorf("failed to fetch weather: %w", err)
 	}
 
-	weather, err := ParserWeather(raw, status)
+	weather, err := Parser(raw, status)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse weather data: %w", err)
 	}
